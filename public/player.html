@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Xem video với HLS Adaptive Bitrate Streaming - Tự động tối ưu chất lượng theo băng thông">
+    <title>Đang xem video - VoD Streaming</title>
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">▶</div>
+            <span>Nhóm 8 VoD Stream</span>
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="/" id="navHome"><span class="nav-text">Trang chủ</span></a></li>
+            <li><a href="/upload.html" id="navUpload"><span class="nav-text">Upload</span></a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="player-container">
+            <!-- Video Player -->
+            <div class="player-wrapper" id="playerWrapper">
+                <video id="videoPlayer" controls playsinline></video>
+            </div>
+
+            <!-- Quality Selector -->
+            <div class="quality-selector" id="qualitySelector">
+                <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Chất lượng:</span>
+                <!-- Dynamic quality buttons -->
+            </div>
+
+            <!-- Streaming Stats -->
+            <div class="player-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Chất lượng hiện tại</div>
+                    <div class="stat-value accent" id="currentQuality">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Băng thông ước tính</div>
+                    <div class="stat-value" id="estimatedBandwidth">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Buffer</div>
+                    <div class="stat-value success" id="bufferLength">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Segments đã tải</div>
+                    <div class="stat-value" id="segmentsLoaded">0</div>
+                </div>
+            </div>
+
+            <!-- Video Info -->
+            <div class="video-details">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+                    <h1 id="videoTitle">Đang tải...</h1>
+                    <div class="video-actions" style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                        <button class="btn btn-secondary" id="btnDownload"
+                            style="padding: 6px 14px; font-size: 0.8rem;">Tải xuống</button>
+                        <button class="btn btn-secondary" id="btnEdit"
+                            style="padding: 6px 14px; font-size: 0.8rem;">Chỉnh sửa</button>
+                        <button class="btn btn-danger" id="btnDelete"
+                            style="padding: 6px 14px; font-size: 0.8rem;">Xóa</button>
+                    </div>
+                </div>
+                <div class="video-meta" style="margin-bottom: 1rem;">
+                    <span id="videoViews">-- lượt xem</span>
+                    <span>•</span>
+                    <span id="videoDate">--</span>
+                    <span>•</span>
+                    <span id="videoDuration">--</span>
+                </div>
+                <p class="description" id="videoDescription"></p>
+            </div>
+
+            <!-- Edit Modal -->
+            <div id="editModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content">
+                    <h2 style="margin-bottom: 1.5rem;">Chỉnh sửa video</h2>
+                    <div class="form-group">
+                        <label for="editTitle">Tiêu đề *</label>
+                        <input type="text" id="editTitle" placeholder="Nhập tiêu đề video...">
+                    </div>
+                    <div class="form-group">
+                        <label for="editDesc">Mô tả</label>
+                        <textarea id="editDesc" placeholder="Nhập mô tả..."></textarea>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                        <button class="btn btn-secondary" id="btnCancelEdit">Hủy</button>
+                        <button class="btn btn-primary" id="btnSaveEdit">Lưu thay đổi</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Confirm Modal -->
+            <div id="deleteModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content" style="max-width: 420px;">
+                    <h2 style="margin-bottom: 0.75rem;">Xác nhận xóa</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Bạn có chắc chắn muốn xóa video này?
+                        Hành động này không thể hoàn tác.</p>
+                    <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                        <button class="btn btn-secondary" id="btnCancelDelete">Hủy</button>
+                        <button class="btn btn-danger" id="btnConfirmDelete">Xóa video</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <script src="/js/player.js"></script>
+</body>
+
+</html>

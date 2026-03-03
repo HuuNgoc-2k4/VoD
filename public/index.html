@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="VoD Streaming - Nền tảng chia sẻ video tối ưu băng thông với HLS Adaptive Bitrate Streaming">
+  <title>VoD Streaming - Chia sẻ Video tối ưu băng thông</title>
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">
+      <div class="logo-icon">▶</div>
+      <span>Nhóm 8 VoD Stream</span>
+    </a>
+
+    <div class="navbar-search">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Tìm kiếm video..." autocomplete="off">
+    </div>
+
+    <ul class="navbar-nav">
+      <li><a href="/" class="active" id="navHome"><span class="nav-text">Trang chủ</span></a></li>
+      <li><a href="/upload.html" id="navUpload"><span class="nav-text">Upload</span></a></li>
+    </ul>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      <!-- Hero -->
+      <section class="hero">
+        <h1>VoD Streaming Platform</h1>
+        <p>Nền tảng chia sẻ video tối ưu băng thông với HLS Adaptive Bitrate Streaming. Tự động điều chỉnh chất lượng
+          theo tốc độ mạng.</p>
+      </section>
+
+      <!-- Video List -->
+      <div class="section-title">
+        <h2>Video mới nhất</h2>
+        <span class="count" id="videoCount"></span>
+      </div>
+
+      <div id="videoGrid" class="video-grid">
+        <!-- Dynamic content -->
+      </div>
+
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <span class="empty-icon">▶</span>
+        <h3>Chưa có video nào</h3>
+        <p>Bắt đầu bằng cách upload video đầu tiên của bạn</p>
+        <a href="/upload.html" class="btn btn-primary">Upload Video</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/app.js"></script>
+</body>
+
+</html>

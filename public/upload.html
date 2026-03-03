@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Upload video lên VoD Streaming - Tự động transcode HLS multi-bitrate">
+    <title>Upload Video - VoD Streaming</title>
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">▶</div>
+            <span>Nhóm 8 VoD Stream</span>
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="/" id="navHome"><span class="nav-text">Trang chủ</span></a></li>
+            <li><a href="/upload.html" class="active" id="navUpload"><span class="nav-text">Upload</span></a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="upload-container">
+            <div class="hero" style="padding-bottom: 1rem;">
+                <h1>Upload Video</h1>
+                <p>Upload video và hệ thống sẽ tự động transcode sang nhiều mức chất lượng HLS</p>
+            </div>
+
+            <!-- Drop Zone -->
+            <div class="upload-zone" id="dropZone">
+                <span class="upload-icon">+</span>
+                <h3>Kéo thả video vào đây</h3>
+                <p>hoặc bấm để chọn file • MP4, WebM, AVI, MOV, MKV • Tối đa 500MB</p>
+                <input type="file" id="fileInput" accept="video/*">
+            </div>
+
+            <!-- File Info & Metadata Form -->
+            <div class="upload-form" id="uploadForm">
+                <div
+                    style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-glass); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <span style="font-size: 1.5rem; color: var(--accent-secondary);">▶</span>
+                    <div>
+                        <div id="fileName" style="font-weight: 600;"></div>
+                        <div id="fileSize" style="font-size: 0.8rem; color: var(--text-muted);"></div>
+                    </div>
+                    <button class="btn btn-secondary" id="removeFile"
+                        style="margin-left: auto; padding: 6px 12px; font-size: 0.8rem;">✕ Xóa</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="videoTitle">Tiêu đề video *</label>
+                    <input type="text" id="videoTitle" placeholder="Nhập tiêu đề video..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="videoDesc">Mô tả</label>
+                    <textarea id="videoDesc" placeholder="Nhập mô tả video (tùy chọn)..."></textarea>
+                </div>
+
+                <button class="btn btn-primary" id="uploadBtn" style="width: 100%; padding: 14px;">
+                    Bắt đầu Upload & Transcode
+                </button>
+            </div>
+
+            <!-- Upload Progress -->
+            <div class="progress-container" id="progressContainer">
+                <h3 style="margin-bottom: 1rem;">Đang upload...</h3>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="progressPercent">0%</span>
+                    <span id="progressSize">0 MB / 0 MB</span>
+                </div>
+            </div>
+
+            <!-- Transcoding Status -->
+            <div class="transcoding-status" id="transcodingStatus">
+                <div class="status-message">
+                    <div class="spinner"></div>
+                    <div>
+                        <div style="font-weight: 600;" id="transcodingText">Đang xử lý transcoding...</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);" id="transcodingDetail">
+                            Hệ thống đang chuyển đổi video sang nhiều mức chất lượng HLS. Quá trình này có thể mất vài
+                            phút.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success -->
+            <div id="uploadSuccess" style="display: none; text-align: center; margin-top: 2rem;">
+                <div style="font-size: 2rem; margin-bottom: 1rem; color: var(--success); font-weight: 700;">Hoàn thành!
+                </div>
+                <h3 style="margin-bottom: 0.5rem;">Video đã sẵn sàng!</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Video đã được transcode thành công sang
+                    nhiều mức chất lượng HLS</p>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <a class="btn btn-primary" id="watchBtn" href="#">Xem video</a>
+                    <a class="btn btn-secondary" href="/upload.html">Upload thêm</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <script src="/js/upload.js"></script>
+</body>
+
+</html>
