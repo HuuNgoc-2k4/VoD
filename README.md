@@ -60,10 +60,16 @@ winget install Gyan.FFmpeg
 ## Cài đặt & Chạy dự án
 
 ```bash
-# Bước 1: Cài đặt các thư viện cần thiết
+# Bước 1: Clone mã nguồn từ GitHub
+git clone https://github.com/your-username/VoD.git
+
+# Bước 2: Di chuyển vào thư mục dự án
+cd VoD
+
+# Bước 3: Cài đặt các thư viện cần thiết
 npm install
 
-# Bước 2: Khởi động server
+# Bước 4: Khởi động server
 npm start
 ```
 
