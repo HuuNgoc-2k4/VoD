@@ -31,17 +31,18 @@ app.get('/thumbnails/:videoId', (req, res) => {
     const thumbPath = path.join(__dirname, 'videos', req.params.videoId, 'thumbnail.jpg');
     res.sendFile(thumbPath, (err) => {
         if (err) {
-            // Send a default placeholder
             res.status(404).send('');
         }
     });
 });
 
 // API Routes
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/videos', require('./routes/videos'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/admin', require('./routes/admin'));
 
-// SPA fallback - serve index.html for client-side routing
+// SPA fallback
 app.get('*', (req, res) => {
     if (!req.path.startsWith('/api/') && !req.path.startsWith('/videos/')) {
         res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -60,4 +61,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
     console.log(`\n VoD Streaming Server`);
     console.log(` http://localhost:${PORT}`);
+    console.log(` Sẵn sàng nhận video!\n`);
 });

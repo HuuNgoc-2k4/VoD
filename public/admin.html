@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - VoD Streaming</title>
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">▶</div>
+            <span>Nhóm 8 VoD Stream</span>
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="/" id="navHome"><span class="nav-text">Trang chủ</span></a></li>
+            <li><a href="/upload.html" id="navUpload"><span class="nav-text">Upload</span></a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <section class="hero" style="padding-bottom: 1rem;">
+                <h1>Admin Panel</h1>
+                <p>Quản lý người dùng và tất cả video trên hệ thống</p>
+            </section>
+
+            <!-- Tabs -->
+            <div class="admin-tabs">
+                <button class="admin-tab active" onclick="showAdminTab('users')">Quản lý Users</button>
+                <button class="admin-tab" onclick="showAdminTab('videos')">Quản lý Videos</button>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="usersTab" class="admin-section">
+                <div class="section-title">
+                    <h2>Danh sách người dùng</h2>
+                    <span class="count" id="userCount"></span>
+                </div>
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Tên hiển thị</th>
+                                <th>Username</th>
+                                <th>Vai trò</th>
+                                <th>Số video</th>
+                                <th>Ngày tạo</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Videos Tab -->
+            <div id="videosTab" class="admin-section" style="display: none;">
+                <div class="section-title">
+                    <h2>Tất cả video</h2>
+                    <span class="count" id="adminVideoCount"></span>
+                </div>
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Tiêu đề</th>
+                                <th>Người upload</th>
+                                <th>Hiển thị</th>
+                                <th>Trạng thái</th>
+                                <th>Lượt xem</th>
+                                <th>Ngày tạo</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="videosBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Delete Confirm Modal -->
+    <div id="deleteModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 420px;">
+            <h2 style="margin-bottom: 0.75rem;">Xác nhận xóa</h2>
+            <p id="deleteMessage" style="color: var(--text-secondary); margin-bottom: 1.5rem;"></p>
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Hủy</button>
+                <button class="btn btn-danger" id="btnConfirmDelete">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <script src="/js/auth.js"></script>
+    <script>
+        // Check admin
+        if (!isLoggedIn() || !isAdmin()) {
+            window.location.href = '/';
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${type === 'success' ? '✓' : '✗'}</span><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.animation = 'slideOut 0.3s ease forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        function showAdminTab(tab) {
+            document.getElementById('usersTab').style.display = tab === 'users' ? 'block' : 'none';
+            document.getElementById('videosTab').style.display = tab === 'videos' ? 'block' : 'none';
+            document.querySelectorAll('.admin-tab').forEach((btn, i) => {
+                btn.classList.toggle('active', (i === 0 && tab === 'users') || (i === 1 && tab === 'videos'));
+            });
+        }
+
+        // Load users
+        async function loadUsers() {
+            const res = await authFetch('/api/admin/users');
+            const users = await res.json();
+            document.getElementById('userCount').textContent = `${users.length} users`;
+
+            document.getElementById('usersBody').innerHTML = users.map(u => `
+                <tr>
+                    <td>${u.display_name}</td>
+                    <td><code>${u.username}</code></td>
+                    <td><span class="role-badge ${u.role}">${u.role}</span></td>
+                    <td>${u.video_count}</td>
+                    <td>${new Date(u.created_at + 'Z').toLocaleDateString('vi-VN')}</td>
+                    <td>
+                        ${u.role !== 'admin' ? `<button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.75rem;" onclick="confirmDeleteUser('${u.id}', '${u.display_name}')">Xóa</button>` : '<span style="color: var(--text-muted);">—</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Load all videos
+        async function loadAdminVideos() {
+            const res = await authFetch('/api/admin/videos');
+            const videos = await res.json();
+            document.getElementById('adminVideoCount').textContent = `${videos.length} video`;
+
+            document.getElementById('videosBody').innerHTML = videos.map(v => `
+                <tr>
+                    <td><a href="/player.html?id=${v.id}" style="color: var(--accent-primary);">${v.title}</a></td>
+                    <td>${v.uploader_name || '—'}</td>
+                    <td><span class="visibility-badge ${v.visibility}">${v.visibility}</span></td>
+                    <td><span class="video-status ${v.status}">${v.status}</span></td>
+                    <td>${v.views || 0}</td>
+                    <td>${new Date(v.created_at + 'Z').toLocaleDateString('vi-VN')}</td>
+                    <td>
+                        <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.75rem;" onclick="confirmDeleteVideo('${v.id}', '${v.title.replace(/'/g, "\\'")}')">Xóa</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Delete modals
+        let deleteAction = null;
+
+        function confirmDeleteUser(id, name) {
+            document.getElementById('deleteMessage').textContent = `Bạn có chắc chắn muốn xóa user "${name}" và tất cả video của họ?`;
+            document.getElementById('deleteModal').style.display = 'flex';
+            deleteAction = async () => {
+                const res = await authFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+                if (res.ok) { showToast('Đã xóa user'); loadUsers(); loadAdminVideos(); }
+                else { const d = await res.json(); showToast(d.error, 'error'); }
+            };
+        }
+
+        function confirmDeleteVideo(id, title) {
+            document.getElementById('deleteMessage').textContent = `Bạn có chắc chắn muốn xóa video "${title}"?`;
+            document.getElementById('deleteModal').style.display = 'flex';
+            deleteAction = async () => {
+                const res = await authFetch(`/api/videos/${id}`, { method: 'DELETE' });
+                if (res.ok) { showToast('Đã xóa video'); loadAdminVideos(); }
+                else { const d = await res.json(); showToast(d.error, 'error'); }
+            };
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            deleteAction = null;
+        }
+
+        document.getElementById('btnConfirmDelete').addEventListener('click', async () => {
+            if (deleteAction) { await deleteAction(); closeDeleteModal(); }
+        });
+
+        // Init
+        loadUsers();
+        loadAdminVideos();
+    </script>
+</body>
+
+</html>

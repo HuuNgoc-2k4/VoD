@@ -37,7 +37,7 @@ function generateThumbnail(inputPath, outputPath) {
     });
 }
 
-function transcodeToQuality(inputPath, outputDir, quality) {
+function transcodeToQuality(inputPath, outputDir, quality, codec = 'libx264') {
     return new Promise((resolve, reject) => {
         const qualityDir = path.join(outputDir, quality.name);
         if (!fs.existsSync(qualityDir)) {
@@ -49,7 +49,7 @@ function transcodeToQuality(inputPath, outputDir, quality) {
         ffmpeg(inputPath)
             .outputOptions([
                 `-vf scale=${quality.width}:${quality.height}:force_original_aspect_ratio=decrease,pad=${quality.width}:${quality.height}:(ow-iw)/2:(oh-ih)/2`,
-                `-c:v libx264`,
+                `-c:v ${codec}`,
                 `-b:v ${quality.bitrate}`,
                 `-maxrate ${quality.bitrate}`,
                 `-bufsize ${parseInt(quality.bitrate) * 2}k`,
@@ -71,11 +71,11 @@ function transcodeToQuality(inputPath, outputDir, quality) {
                 }
             })
             .on('end', () => {
-                console.log(`  [${quality.name}] ✓ Hoàn thành`);
+                console.log(`  [${quality.name}] Hoàn thành`);
                 resolve(playlistPath);
             })
             .on('error', (err) => {
-                console.error(`  [${quality.name}] ✗ Lỗi:`, err.message);
+                console.error(`  [${quality.name}] Lỗi:`, err.message);
                 reject(err);
             })
             .run();
@@ -94,7 +94,7 @@ function generateMasterPlaylist(outputDir, availableQualities) {
     fs.writeFileSync(path.join(outputDir, 'master.m3u8'), playlist);
 }
 
-async function transcodeVideo(videoId, inputPath) {
+async function transcodeVideo(videoId, inputPath, codec = 'libx264') {
     const videosDir = path.join(__dirname, '..', 'videos');
     const outputDir = path.join(videosDir, videoId);
 
@@ -136,7 +136,7 @@ async function transcodeVideo(videoId, inputPath) {
 
         // Transcode each quality sequentially to avoid overloading CPU
         for (const quality of applicableQualities) {
-            await transcodeToQuality(inputPath, outputDir, quality);
+            await transcodeToQuality(inputPath, outputDir, quality, codec);
         }
 
         // Generate master playlist
@@ -148,9 +148,9 @@ async function transcodeVideo(videoId, inputPath) {
 
         // Update database
         const stmt = db.prepare(
-            'UPDATE videos SET status = ?, duration = ?, file_size = ?, thumbnail = ? WHERE id = ?'
+            'UPDATE videos SET status = ?, duration = ?, file_size = ?, thumbnail = ?, codec = ? WHERE id = ?'
         );
-        stmt.run('ready', duration, stats.size, `thumbnail.jpg`, videoId);
+        stmt.run('ready', duration, stats.size, 'thumbnail.jpg', codec, videoId);
 
         // Clean up the original uploaded file
         if (fs.existsSync(inputPath)) {

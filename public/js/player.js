@@ -1,3 +1,8 @@
+// ===================================
+// VoD Streaming - Player.js
+// HLS.js Player + Edit/Delete/Download
+// ===================================
+
 const videoPlayer = document.getElementById('videoPlayer');
 const qualitySelector = document.getElementById('qualitySelector');
 const currentQualityEl = document.getElementById('currentQuality');
@@ -13,14 +18,11 @@ const videoDescriptionEl = document.getElementById('videoDescription');
 let hls = null;
 let segmentsLoaded = 0;
 let currentVideo = null;
+let editVisibility = 'public';
 
-// Get video ID from URL
 const urlParams = new URLSearchParams(window.location.search);
 const videoId = urlParams.get('id');
-
-if (!videoId) {
-    window.location.href = '/';
-}
+if (!videoId) window.location.href = '/';
 
 // Utility
 function formatBytes(bytes) {
@@ -62,17 +64,27 @@ function showToast(message, type = 'success') {
     toast.className = `toast ${type}`;
     toast.innerHTML = `<span>${type === 'success' ? '✓' : '✗'}</span><span>${message}</span>`;
     container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease forwards';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    setTimeout(() => { toast.style.animation = 'slideOut 0.3s ease forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+function setEditVisibility(vis) {
+    editVisibility = vis;
+    document.getElementById('editVisPublic').classList.toggle('active', vis === 'public');
+    document.getElementById('editVisPrivate').classList.toggle('active', vis === 'private');
 }
 
 // Load video info
 async function loadVideoInfo() {
     try {
-        const res = await fetch(`/api/videos/${videoId}`);
-        if (!res.ok) throw new Error('Video not found');
+        const res = await authFetch(`/api/videos/${videoId}`);
+        if (!res.ok) {
+            if (res.status === 403) {
+                showToast('Video này ở chế độ riêng tư', 'error');
+                videoTitleEl.textContent = 'Video riêng tư';
+                return;
+            }
+            throw new Error('Video not found');
+        }
         const video = await res.json();
         currentVideo = video;
 
@@ -82,6 +94,36 @@ async function loadVideoInfo() {
         videoDateEl.textContent = timeAgo(video.created_at);
         videoDurationEl.textContent = formatDuration(video.duration);
         videoDescriptionEl.textContent = video.description || 'Không có mô tả';
+
+        // Show uploader
+        if (video.uploader_name) {
+            document.getElementById('videoUploader').textContent = `Uploaded bởi: ${video.uploader_name}`;
+        }
+
+        // Show visibility badge
+        if (video.visibility === 'private') {
+            document.getElementById('videoVisibility').innerHTML = ' • <span class="visibility-badge private">Private</span>';
+        }
+
+        // Show codec info
+        if (video.codec) {
+            const codecNames = { libx264: 'H.264', libx265: 'H.265/HEVC', 'libvpx-vp9': 'VP9', 'libaom-av1': 'AV1' };
+            document.getElementById('videoCodec').textContent = `Codec: ${codecNames[video.codec] || video.codec}`;
+        }
+
+        // Show action buttons if owner or admin
+        const user = getCurrentUser();
+        if (user) {
+            const isOwner = video.user_id === user.id;
+            const isAdm = user.role === 'admin';
+            if (isOwner || isAdm) {
+                document.getElementById('videoActions').style.display = 'flex';
+            }
+            // Download is visible for everyone (when video is ready)
+            if (video.status === 'ready') {
+                document.getElementById('btnDownload').style.display = '';
+            }
+        }
 
         if (video.status === 'ready') {
             initPlayer();
@@ -105,74 +147,45 @@ function pollStatus() {
         try {
             const res = await fetch(`/api/upload/status/${videoId}`);
             const video = await res.json();
-            if (video.status === 'ready') {
-                clearInterval(interval);
-                initPlayer();
-                showToast('Video đã sẵn sàng!');
-            } else if (video.status === 'error') {
-                clearInterval(interval);
-                showToast('Lỗi xử lý video', 'error');
-            }
+            if (video.status === 'ready') { clearInterval(interval); initPlayer(); showToast('Video đã sẵn sàng!'); }
+            else if (video.status === 'error') { clearInterval(interval); showToast('Lỗi xử lý video', 'error'); }
         } catch (e) { }
     }, 3000);
 }
 
-// Initialize HLS.js Player
+// HLS Player
 function initPlayer() {
     const streamUrl = `/videos/${videoId}/master.m3u8`;
 
     if (Hls.isSupported()) {
         hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: false,
-            startLevel: 0,
-            abrEwmaDefaultEstimate: 500000,
-            abrBandWidthFactor: 0.95,
-            abrBandWidthUpFactor: 0.7,
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            maxBufferSize: 60 * 1000 * 1000,
-            maxBufferHole: 0.5,
-            testBandwidth: true,
-            progressive: true,
+            enableWorker: true, lowLatencyMode: false, startLevel: 0,
+            abrEwmaDefaultEstimate: 500000, abrBandWidthFactor: 0.95, abrBandWidthUpFactor: 0.7,
+            maxBufferLength: 30, maxMaxBufferLength: 60, maxBufferSize: 60 * 1000 * 1000,
+            maxBufferHole: 0.5, testBandwidth: true, progressive: true,
         });
 
         hls.loadSource(streamUrl);
         hls.attachMedia(videoPlayer);
 
         hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-            console.log('HLS Manifest loaded, quality levels:', data.levels.length);
             buildQualitySelector(data.levels);
             videoPlayer.play().catch(() => { });
         });
 
         hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
             const level = hls.levels[data.level];
-            if (level) {
-                const qualityName = `${level.height}p`;
-                currentQualityEl.textContent = qualityName;
-                updateQualityButtons(data.level);
-            }
+            if (level) { currentQualityEl.textContent = `${level.height}p`; updateQualityButtons(data.level); }
         });
 
-        hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
-            segmentsLoaded++;
-            segmentsLoadedEl.textContent = segmentsLoaded;
-        });
+        hls.on(Hls.Events.FRAG_LOADED, () => { segmentsLoaded++; segmentsLoadedEl.textContent = segmentsLoaded; });
 
         hls.on(Hls.Events.ERROR, (event, data) => {
             if (data.fatal) {
-                console.error('HLS Fatal Error:', data);
                 switch (data.type) {
-                    case Hls.ErrorTypes.NETWORK_ERROR:
-                        hls.startLoad();
-                        break;
-                    case Hls.ErrorTypes.MEDIA_ERROR:
-                        hls.recoverMediaError();
-                        break;
-                    default:
-                        hls.destroy();
-                        showToast('Lỗi phát video', 'error');
+                    case Hls.ErrorTypes.NETWORK_ERROR: hls.startLoad(); break;
+                    case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); break;
+                    default: hls.destroy(); showToast('Lỗi phát video', 'error');
                 }
             }
         });
@@ -180,187 +193,185 @@ function initPlayer() {
         setInterval(updateStats, 1000);
     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
         videoPlayer.src = streamUrl;
-        videoPlayer.addEventListener('loadedmetadata', () => {
-            videoPlayer.play().catch(() => { });
-        });
+        videoPlayer.addEventListener('loadedmetadata', () => { videoPlayer.play().catch(() => { }); });
         currentQualityEl.textContent = 'Auto (native)';
     } else {
         showToast('Trình duyệt không hỗ trợ HLS', 'error');
     }
 }
 
-// Build quality selector buttons
 function buildQualitySelector(levels) {
     let html = '<span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Chất lượng:</span>';
     html += `<button class="quality-badge active" data-level="-1" onclick="setQuality(-1)">Auto</button>`;
-
     levels.forEach((level, index) => {
         html += `<button class="quality-badge" data-level="${index}" onclick="setQuality(${index})">${level.height}p</button>`;
     });
-
     qualitySelector.innerHTML = html;
 }
 
-// Set quality level
 function setQuality(level) {
     if (!hls) return;
-
-    if (level === -1) {
-        hls.currentLevel = -1;
-        currentQualityEl.textContent = 'Auto';
-    } else {
-        hls.currentLevel = level;
-        const levelData = hls.levels[level];
-        if (levelData) {
-            currentQualityEl.textContent = `${levelData.height}p (thủ công)`;
-        }
-    }
-
-    document.querySelectorAll('.quality-badge').forEach((btn) => {
-        btn.classList.remove('active');
-        if (parseInt(btn.dataset.level) === level) {
-            btn.classList.add('active');
-        }
+    hls.currentLevel = level;
+    if (level === -1) { currentQualityEl.textContent = 'Auto'; }
+    else { const l = hls.levels[level]; if (l) currentQualityEl.textContent = `${l.height}p (thủ công)`; }
+    document.querySelectorAll('.quality-badge').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.level) === level);
     });
 }
 
-// Update quality button active state
 function updateQualityButtons(activeLevel) {
     if (hls && hls.autoLevelEnabled) {
-        document.querySelectorAll('.quality-badge').forEach((btn) => {
-            btn.classList.remove('active');
-            if (parseInt(btn.dataset.level) === -1) {
-                btn.classList.add('active');
-            }
+        document.querySelectorAll('.quality-badge').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.level) === -1);
         });
     }
 }
 
-// Update streaming stats
 function updateStats() {
     if (!hls) return;
-
-    const bwEstimate = hls.bandwidthEstimate;
-    if (bwEstimate) {
-        estimatedBandwidthEl.textContent = formatBitrate(bwEstimate);
-    }
-
+    const bw = hls.bandwidthEstimate;
+    if (bw) estimatedBandwidthEl.textContent = formatBitrate(bw);
     if (videoPlayer.buffered.length > 0) {
-        const buffered = videoPlayer.buffered.end(videoPlayer.buffered.length - 1) - videoPlayer.currentTime;
-        bufferLengthEl.textContent = `${Math.max(0, buffered).toFixed(1)}s`;
+        const buf = videoPlayer.buffered.end(videoPlayer.buffered.length - 1) - videoPlayer.currentTime;
+        bufferLengthEl.textContent = `${Math.max(0, buf).toFixed(1)}s`;
     }
 }
 
 // ===================================
-// Edit / Delete / Download
+// Download with quality selection
 // ===================================
 
-const editModal = document.getElementById('editModal');
-const deleteModal = document.getElementById('deleteModal');
-const editTitleInput = document.getElementById('editTitle');
-const editDescInput = document.getElementById('editDesc');
-
-// --- Download ---
-document.getElementById('btnDownload').addEventListener('click', () => {
+document.getElementById('btnDownload').addEventListener('click', async () => {
     if (!currentVideo || currentVideo.status !== 'ready') {
-        showToast('Video chưa sẵn sàng để tải', 'error');
+        showToast('Video chưa sẵn sàng', 'error');
         return;
     }
-    // Trigger download via hidden link
+
+    const modal = document.getElementById('downloadModal');
+    const container = document.getElementById('downloadQualities');
+    container.innerHTML = '<p style="color: var(--text-muted);">Đang tải...</p>';
+    modal.style.display = 'flex';
+
+    try {
+        const res = await fetch(`/api/videos/${videoId}/qualities`);
+        const qualities = await res.json();
+
+        if (qualities.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-muted);">Không có chất lượng nào</p>';
+            return;
+        }
+
+        container.innerHTML = qualities.map(q => `
+            <button class="download-quality-btn" onclick="startDownload('${q.quality}')">
+                <span class="dq-label">${q.quality}</span>
+                <span class="dq-size">${formatBytes(q.size)}</span>
+            </button>
+        `).join('');
+    } catch (err) {
+        container.innerHTML = '<p style="color: var(--danger);">Lỗi tải danh sách chất lượng</p>';
+    }
+});
+
+function startDownload(quality) {
+    document.getElementById('downloadModal').style.display = 'none';
     const a = document.createElement('a');
-    a.href = `/api/videos/${videoId}/download`;
+    a.href = `/api/videos/${videoId}/download?quality=${quality}`;
     a.download = '';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    showToast('Đang bắt đầu tải xuống...');
+    showToast(`Đang tải xuống ${quality}...`);
+}
+
+document.getElementById('btnCancelDownload').addEventListener('click', () => {
+    document.getElementById('downloadModal').style.display = 'none';
 });
 
-// --- Edit ---
+document.getElementById('downloadModal').addEventListener('click', (e) => {
+    if (e.target.id === 'downloadModal') document.getElementById('downloadModal').style.display = 'none';
+});
+
+// ===================================
+// Edit
+// ===================================
+
 document.getElementById('btnEdit').addEventListener('click', () => {
     if (!currentVideo) return;
-    editTitleInput.value = currentVideo.title || '';
-    editDescInput.value = currentVideo.description || '';
-    editModal.style.display = 'flex';
+    document.getElementById('editTitle').value = currentVideo.title || '';
+    document.getElementById('editDesc').value = currentVideo.description || '';
+    setEditVisibility(currentVideo.visibility || 'public');
+    document.getElementById('editModal').style.display = 'flex';
 });
 
 document.getElementById('btnCancelEdit').addEventListener('click', () => {
-    editModal.style.display = 'none';
+    document.getElementById('editModal').style.display = 'none';
 });
 
-// Close modal on overlay click
-editModal.addEventListener('click', (e) => {
-    if (e.target === editModal) editModal.style.display = 'none';
+document.getElementById('editModal').addEventListener('click', (e) => {
+    if (e.target.id === 'editModal') document.getElementById('editModal').style.display = 'none';
 });
 
 document.getElementById('btnSaveEdit').addEventListener('click', async () => {
-    const title = editTitleInput.value.trim();
-    const description = editDescInput.value.trim();
+    const title = document.getElementById('editTitle').value.trim();
+    const description = document.getElementById('editDesc').value.trim();
 
-    if (!title) {
-        showToast('Tiêu đề không được để trống', 'error');
-        return;
-    }
+    if (!title) { showToast('Tiêu đề không được để trống', 'error'); return; }
 
     try {
-        const res = await fetch(`/api/videos/${videoId}`, {
+        const res = await authFetch(`/api/videos/${videoId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, description }),
+            body: JSON.stringify({ title, description, visibility: editVisibility }),
         });
-
         const result = await res.json();
 
         if (res.ok) {
-            editModal.style.display = 'none';
-            showToast('Đã cập nhật video thành công!');
-            // Update UI
+            document.getElementById('editModal').style.display = 'none';
+            showToast('Đã cập nhật video!');
             currentVideo.title = title;
             currentVideo.description = description;
+            currentVideo.visibility = editVisibility;
             videoTitleEl.textContent = title;
             videoDescriptionEl.textContent = description || 'Không có mô tả';
             document.title = `${title} - VoD Streaming`;
+            // Update visibility badge
+            const visBadge = document.getElementById('videoVisibility');
+            visBadge.innerHTML = editVisibility === 'private' ? ' • <span class="visibility-badge private">Private</span>' : '';
         } else {
-            showToast(result.error || 'Lỗi cập nhật video', 'error');
+            showToast(result.error || 'Lỗi cập nhật', 'error');
         }
     } catch (err) {
-        console.error('Edit error:', err);
         showToast('Lỗi kết nối server', 'error');
     }
 });
 
-// --- Delete ---
+// ===================================
+// Delete
+// ===================================
+
 document.getElementById('btnDelete').addEventListener('click', () => {
-    deleteModal.style.display = 'flex';
+    document.getElementById('deleteModal').style.display = 'flex';
 });
 
 document.getElementById('btnCancelDelete').addEventListener('click', () => {
-    deleteModal.style.display = 'none';
+    document.getElementById('deleteModal').style.display = 'none';
 });
 
-deleteModal.addEventListener('click', (e) => {
-    if (e.target === deleteModal) deleteModal.style.display = 'none';
+document.getElementById('deleteModal').addEventListener('click', (e) => {
+    if (e.target.id === 'deleteModal') document.getElementById('deleteModal').style.display = 'none';
 });
 
 document.getElementById('btnConfirmDelete').addEventListener('click', async () => {
     try {
-        const res = await fetch(`/api/videos/${videoId}`, {
-            method: 'DELETE',
-        });
-
-        const result = await res.json();
-
+        const res = await authFetch(`/api/videos/${videoId}`, { method: 'DELETE' });
         if (res.ok) {
-            showToast('Đã xóa video thành công!');
-            // Redirect to homepage after short delay
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1000);
+            showToast('Đã xóa video!');
+            setTimeout(() => { window.location.href = '/'; }, 1000);
         } else {
-            showToast(result.error || 'Lỗi xóa video', 'error');
+            const d = await res.json();
+            showToast(d.error || 'Lỗi xóa video', 'error');
         }
     } catch (err) {
-        console.error('Delete error:', err);
         showToast('Lỗi kết nối server', 'error');
     }
 });

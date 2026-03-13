@@ -13,7 +13,6 @@
 </head>
 
 <body>
-    <!-- Navbar -->
     <nav class="navbar">
         <a href="/" class="navbar-brand">
             <div class="logo-icon">▶</div>
@@ -25,21 +24,16 @@
         </ul>
     </nav>
 
-    <!-- Main Content -->
     <main class="main-content">
         <div class="player-container">
-            <!-- Video Player -->
             <div class="player-wrapper" id="playerWrapper">
                 <video id="videoPlayer" controls playsinline></video>
             </div>
 
-            <!-- Quality Selector -->
             <div class="quality-selector" id="qualitySelector">
                 <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Chất lượng:</span>
-                <!-- Dynamic quality buttons -->
             </div>
 
-            <!-- Streaming Stats -->
             <div class="player-stats">
                 <div class="stat-card">
                     <div class="stat-label">Chất lượng hiện tại</div>
@@ -59,27 +53,28 @@
                 </div>
             </div>
 
-            <!-- Video Info -->
             <div class="video-details">
-                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
-                    <h1 id="videoTitle">Đang tải...</h1>
-                    <div class="video-actions" style="display: flex; gap: 0.5rem; flex-shrink: 0;">
-                        <button class="btn btn-secondary" id="btnDownload"
-                            style="padding: 6px 14px; font-size: 0.8rem;">Tải xuống</button>
-                        <button class="btn btn-secondary" id="btnEdit"
-                            style="padding: 6px 14px; font-size: 0.8rem;">Chỉnh sửa</button>
-                        <button class="btn btn-danger" id="btnDelete"
-                            style="padding: 6px 14px; font-size: 0.8rem;">Xóa</button>
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <h1 id="videoTitle">Đang tải...</h1>
+                        <div class="video-meta" style="margin-bottom: 0.5rem;">
+                            <span id="videoViews">-- lượt xem</span>
+                            <span>•</span>
+                            <span id="videoDate">--</span>
+                            <span>•</span>
+                            <span id="videoDuration">--</span>
+                            <span id="videoVisibility"></span>
+                        </div>
+                        <div id="videoUploader" class="video-uploader" style="margin-bottom: 0.5rem;"></div>
+                    </div>
+                    <div class="video-actions" id="videoActions" style="display: none; gap: 0.5rem; flex-shrink: 0;">
+                        <button class="btn btn-secondary" id="btnDownload" style="padding: 6px 14px; font-size: 0.8rem;">Tải xuống</button>
+                        <button class="btn btn-secondary" id="btnEdit" style="padding: 6px 14px; font-size: 0.8rem;">Chỉnh sửa</button>
+                        <button class="btn btn-danger" id="btnDelete" style="padding: 6px 14px; font-size: 0.8rem;">Xóa</button>
                     </div>
                 </div>
-                <div class="video-meta" style="margin-bottom: 1rem;">
-                    <span id="videoViews">-- lượt xem</span>
-                    <span>•</span>
-                    <span id="videoDate">--</span>
-                    <span>•</span>
-                    <span id="videoDuration">--</span>
-                </div>
                 <p class="description" id="videoDescription"></p>
+                <div id="videoCodec" style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);"></div>
             </div>
 
             <!-- Edit Modal -->
@@ -94,6 +89,13 @@
                         <label for="editDesc">Mô tả</label>
                         <textarea id="editDesc" placeholder="Nhập mô tả..."></textarea>
                     </div>
+                    <div class="form-group">
+                        <label>Chế độ hiển thị</label>
+                        <div class="visibility-toggle">
+                            <button type="button" class="vis-btn" id="editVisPublic" onclick="setEditVisibility('public')">Public</button>
+                            <button type="button" class="vis-btn" id="editVisPrivate" onclick="setEditVisibility('private')">Private</button>
+                        </div>
+                    </div>
                     <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
                         <button class="btn btn-secondary" id="btnCancelEdit">Hủy</button>
                         <button class="btn btn-primary" id="btnSaveEdit">Lưu thay đổi</button>
@@ -105,11 +107,23 @@
             <div id="deleteModal" class="modal-overlay" style="display: none;">
                 <div class="modal-content" style="max-width: 420px;">
                     <h2 style="margin-bottom: 0.75rem;">Xác nhận xóa</h2>
-                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Bạn có chắc chắn muốn xóa video này?
-                        Hành động này không thể hoàn tác.</p>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Bạn có chắc chắn muốn xóa video này? Hành động này không thể hoàn tác.</p>
                     <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
                         <button class="btn btn-secondary" id="btnCancelDelete">Hủy</button>
                         <button class="btn btn-danger" id="btnConfirmDelete">Xóa video</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Quality Modal -->
+            <div id="downloadModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content" style="max-width: 420px;">
+                    <h2 style="margin-bottom: 1rem;">Chọn chất lượng tải xuống</h2>
+                    <div id="downloadQualities" class="download-qualities">
+                        <p style="color: var(--text-muted);">Đang tải...</p>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+                        <button class="btn btn-secondary" id="btnCancelDownload">Hủy</button>
                     </div>
                 </div>
             </div>
@@ -117,6 +131,7 @@
     </main>
 
     <div class="toast-container" id="toastContainer"></div>
+    <script src="/js/auth.js"></script>
     <script src="/js/player.js"></script>
 </body>
 

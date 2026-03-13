@@ -11,7 +11,6 @@
 </head>
 
 <body>
-    <!-- Navbar -->
     <nav class="navbar">
         <a href="/" class="navbar-brand">
             <div class="logo-icon">▶</div>
@@ -23,9 +22,15 @@
         </ul>
     </nav>
 
-    <!-- Main Content -->
     <main class="main-content">
-        <div class="upload-container">
+        <!-- Login Required Banner -->
+        <div id="loginRequired" class="upload-container" style="display: none; text-align: center; padding: 3rem;">
+            <h2 style="margin-bottom: 1rem;">Vui lòng đăng nhập</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Bạn cần đăng nhập để upload video</p>
+            <a href="/login.html" class="btn btn-primary">Đăng nhập</a>
+        </div>
+
+        <div id="uploadArea" class="upload-container">
             <div class="hero" style="padding-bottom: 1rem;">
                 <h1>Upload Video</h1>
                 <p>Upload video và hệ thống sẽ tự động transcode sang nhiều mức chất lượng HLS</p>
@@ -60,6 +65,18 @@
                 <div class="form-group">
                     <label for="videoDesc">Mô tả</label>
                     <textarea id="videoDesc" placeholder="Nhập mô tả video (tùy chọn)..."></textarea>
+                </div>
+
+                <!-- Visibility Toggle -->
+                <div class="form-group">
+                    <label>Chế độ hiển thị</label>
+                    <div class="visibility-toggle">
+                        <button type="button" class="vis-btn active" id="visPublic" onclick="setVisibility('public')">Public</button>
+                        <button type="button" class="vis-btn" id="visPrivate" onclick="setVisibility('private')">Private</button>
+                    </div>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                        Public: mọi người đều xem được • Private: chỉ bạn mới xem được
+                    </p>
                 </div>
 
                 <button class="btn btn-primary" id="uploadBtn" style="width: 100%; padding: 14px;">
@@ -109,6 +126,7 @@
     </main>
 
     <div class="toast-container" id="toastContainer"></div>
+    <script src="/js/auth.js"></script>
     <script src="/js/upload.js"></script>
 </body>
 

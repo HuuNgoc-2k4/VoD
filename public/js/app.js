@@ -1,4 +1,8 @@
-// Utility functions
+// ===================================
+// VoD Streaming - App.js
+// Main application logic for homepage
+// ===================================
+
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -12,9 +16,7 @@ function formatDuration(seconds) {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
-    if (h > 0) {
-        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    }
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
@@ -22,7 +24,6 @@ function timeAgo(dateStr) {
     const date = new Date(dateStr + 'Z');
     const now = new Date();
     const diff = Math.floor((now - date) / 1000);
-
     if (diff < 60) return 'Vừa xong';
     if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
@@ -34,16 +35,18 @@ function showToast(message, type = 'success') {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `
-    <span>${type === 'success' ? '✅' : '❌'}</span>
-    <span>${message}</span>
-  `;
+    toast.innerHTML = `<span>${type === 'success' ? '✓' : '✗'}</span><span>${message}</span>`;
     container.appendChild(toast);
-
     setTimeout(() => {
         toast.style.animation = 'slideOut 0.3s ease forwards';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Video Grid
@@ -59,9 +62,8 @@ async function loadVideos(search = '') {
         const params = new URLSearchParams();
         if (search) params.set('search', search);
 
-        const res = await fetch(`/api/videos?${params}`);
+        const res = await authFetch(`/api/videos?${params}`);
         const videos = await res.json();
-
         renderVideos(videos);
     } catch (err) {
         console.error('Error loading videos:', err);
@@ -81,38 +83,30 @@ function renderVideos(videos) {
     emptyState.style.display = 'none';
     videoCount.textContent = `${videos.length} video`;
 
-    videoGrid.innerHTML = videos
-        .map(
-            (video) => `
+    videoGrid.innerHTML = videos.map(video => `
     <div class="video-card" onclick="window.location.href='/player.html?id=${video.id}'">
       <div class="video-thumbnail">
         ${video.status === 'ready' && video.thumbnail
-                    ? `<img src="/thumbnails/${video.id}" alt="${escapeHtml(video.title)}" loading="lazy">`
-                    : `<div class="placeholder-thumb">🎬</div>`
-                }
+            ? `<img src="/thumbnails/${video.id}" alt="${escapeHtml(video.title)}" loading="lazy">`
+            : `<div class="placeholder-thumb">▶</div>`
+        }
         <div class="video-play-btn"></div>
         ${video.duration ? `<span class="video-duration">${formatDuration(video.duration)}</span>` : ''}
+        ${video.visibility === 'private' ? `<span class="visibility-tag">Private</span>` : ''}
       </div>
       <div class="video-info">
         <h3>${escapeHtml(video.title)}</h3>
         <div class="video-meta">
           <span class="video-status ${video.status}">
-            ${video.status === 'processing' ? '⏳ Đang xử lý' : video.status === 'ready' ? '✓ Sẵn sàng' : '✗ Lỗi'}
+            ${video.status === 'processing' ? 'Đang xử lý' : video.status === 'ready' ? '✓ Sẵn sàng' : '✗ Lỗi'}
           </span>
-          <span>👁 ${video.views || 0}</span>
+          <span>${video.views || 0} lượt xem</span>
           <span>${timeAgo(video.created_at)}</span>
         </div>
+        ${video.uploader_name ? `<div class="video-uploader">${escapeHtml(video.uploader_name)}</div>` : ''}
       </div>
     </div>
-  `
-        )
-        .join('');
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  `).join('');
 }
 
 // Search

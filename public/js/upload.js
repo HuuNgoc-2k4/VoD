@@ -17,6 +17,19 @@ const uploadSuccess = document.getElementById('uploadSuccess');
 const watchBtn = document.getElementById('watchBtn');
 
 let selectedFile = null;
+let selectedVisibility = 'public';
+
+// Check auth
+if (!isLoggedIn()) {
+    document.getElementById('loginRequired').style.display = 'block';
+    document.getElementById('uploadArea').style.display = 'none';
+}
+
+function setVisibility(vis) {
+    selectedVisibility = vis;
+    document.getElementById('visPublic').classList.toggle('active', vis === 'public');
+    document.getElementById('visPrivate').classList.toggle('active', vis === 'private');
+}
 
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
@@ -30,7 +43,7 @@ function showToast(message, type = 'success') {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span><span>${message}</span>`;
+    toast.innerHTML = `<span>${type === 'success' ? '✓' : '✗'}</span><span>${message}</span>`;
     container.appendChild(toast);
     setTimeout(() => {
         toast.style.animation = 'slideOut 0.3s ease forwards';
@@ -62,7 +75,6 @@ fileInput.addEventListener('change', (e) => {
 });
 
 function selectFile(file) {
-    // Validate
     if (!file.type.startsWith('video/') && !file.name.match(/\.(mp4|webm|avi|mov|mkv)$/i)) {
         showToast('Vui lòng chọn file video (MP4, WebM, AVI, MOV, MKV)', 'error');
         return;
@@ -100,22 +112,19 @@ uploadBtn.addEventListener('click', async () => {
         return;
     }
 
-    // Disable form
     uploadBtn.disabled = true;
-    uploadBtn.textContent = '⏳ Đang upload...';
+    uploadBtn.textContent = 'Đang upload...';
     uploadForm.style.opacity = '0.6';
     uploadForm.style.pointerEvents = 'none';
 
-    // Show progress
     progressContainer.classList.add('active');
 
-    // Prepare form data
     const formData = new FormData();
     formData.append('video', selectedFile);
     formData.append('title', title);
     formData.append('description', descInput.value.trim());
+    formData.append('visibility', selectedVisibility);
 
-    // Upload with progress tracking
     const xhr = new XMLHttpRequest();
 
     xhr.upload.addEventListener('progress', (e) => {
@@ -133,8 +142,6 @@ uploadBtn.addEventListener('click', async () => {
             progressContainer.classList.remove('active');
             transcodingStatus.classList.add('active');
             showToast('Upload thành công! Đang transcode...');
-
-            // Poll for transcoding status
             pollTranscoding(result.videoId);
         } else {
             let errorMsg = 'Upload thất bại';
@@ -153,6 +160,9 @@ uploadBtn.addEventListener('click', async () => {
     });
 
     xhr.open('POST', '/api/upload');
+    // Add auth header
+    const token = getToken();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.send(formData);
 });
 
@@ -167,21 +177,19 @@ function pollTranscoding(videoId) {
                 transcodingStatus.classList.remove('active');
                 uploadSuccess.style.display = 'block';
                 watchBtn.href = `/player.html?id=${videoId}`;
-                showToast('🎉 Video đã sẵn sàng phát!');
+                showToast('Video đã sẵn sàng phát!');
             } else if (data.status === 'error') {
                 clearInterval(interval);
                 transcodingText.textContent = 'Lỗi khi xử lý video';
                 showToast('Lỗi transcode video', 'error');
             }
-        } catch (e) {
-            // Continue polling
-        }
+        } catch (e) { }
     }, 3000);
 }
 
 function resetForm() {
     uploadBtn.disabled = false;
-    uploadBtn.textContent = '⬆️ Bắt đầu Upload & Transcode';
+    uploadBtn.textContent = 'Bắt đầu Upload & Transcode';
     uploadForm.style.opacity = '1';
     uploadForm.style.pointerEvents = 'auto';
     progressContainer.classList.remove('active');

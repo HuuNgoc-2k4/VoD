@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Đăng nhập hoặc đăng ký tài khoản VoD Streaming">
+    <title>Đăng nhập - VoD Streaming</title>
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">▶</div>
+            <span>Nhóm 8 VoD Stream</span>
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="/" id="navHome"><span class="nav-text">Trang chủ</span></a></li>
+            <li><a href="/upload.html" id="navUpload"><span class="nav-text">Upload</span></a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <div class="auth-container">
+            <div class="auth-card">
+                <!-- Tabs -->
+                <div class="auth-tabs">
+                    <button class="auth-tab active" id="tabLogin" onclick="showTab('login')">Đăng nhập</button>
+                    <button class="auth-tab" id="tabRegister" onclick="showTab('register')">Đăng ký</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="loginUsername">Tên đăng nhập</label>
+                        <input type="text" id="loginUsername" placeholder="Nhập tên đăng nhập..." autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Mật khẩu</label>
+                        <input type="password" id="loginPassword" placeholder="Nhập mật khẩu..." autocomplete="current-password">
+                    </div>
+                    <div id="loginError" class="auth-error" style="display: none;"></div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px;">Đăng nhập</button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" class="auth-form" style="display: none;">
+                    <div class="form-group">
+                        <label for="regDisplayName">Tên hiển thị</label>
+                        <input type="text" id="regDisplayName" placeholder="Tên sẽ hiển thị trên website..." autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label for="regUsername">Tên đăng nhập</label>
+                        <input type="text" id="regUsername" placeholder="Ít nhất 3 ký tự..." autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword">Mật khẩu</label>
+                        <input type="password" id="regPassword" placeholder="Ít nhất 6 ký tự..." autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword2">Xác nhận mật khẩu</label>
+                        <input type="password" id="regPassword2" placeholder="Nhập lại mật khẩu..." autocomplete="new-password">
+                    </div>
+                    <div id="registerError" class="auth-error" style="display: none;"></div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px;">Đăng ký</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <script src="/js/auth.js"></script>
+    <script>
+        // Redirect if already logged in
+        if (isLoggedIn()) {
+            window.location.href = '/';
+        }
+
+        function showTab(tab) {
+            document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+            document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+            document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+            document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+        }
+
+        function showError(id, msg) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                return showError('loginError', 'Vui lòng nhập đầy đủ thông tin');
+            }
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    saveAuth(data.token, data.user);
+                    window.location.href = '/';
+                } else {
+                    showError('loginError', data.error);
+                }
+            } catch (err) {
+                showError('loginError', 'Lỗi kết nối server');
+            }
+        });
+
+        // Register
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const display_name = document.getElementById('regDisplayName').value.trim();
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const password2 = document.getElementById('regPassword2').value;
+
+            if (!display_name || !username || !password) {
+                return showError('registerError', 'Vui lòng nhập đầy đủ thông tin');
+            }
+            if (password !== password2) {
+                return showError('registerError', 'Mật khẩu xác nhận không khớp');
+            }
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, display_name }),
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    saveAuth(data.token, data.user);
+                    window.location.href = '/';
+                } else {
+                    showError('registerError', data.error);
+                }
+            } catch (err) {
+                showError('registerError', 'Lỗi kết nối server');
+            }
+        });
+    </script>
+</body>
+
+</html>
