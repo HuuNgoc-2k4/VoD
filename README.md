@@ -4,151 +4,84 @@ Website chia sẻ video tối ưu hóa băng thông sử dụng giao thức Vide
 
 ## Chức năng
 
-### Quản lý Video
-- **Upload video**: Kéo thả hoặc chọn file (MP4, WebM, AVI, MOV, MKV — tối đa 500MB)
-- **Chỉnh sửa video**: Cập nhật tiêu đề và mô tả video đã upload
-- **Xóa video**: Xóa video cùng toàn bộ dữ liệu liên quan
-- **Tải xuống video**: Download video ở chất lượng cao nhất có sẵn
-- **Tìm kiếm video**: Tìm kiếm theo tiêu đề hoặc mô tả
+### 👤 Xác thực & Người dùng
+- **Đăng ký / Đăng nhập**: Quản lý tài khoản người dùng với mã hóa mật khẩu bảo mật (Bcrypt) và JWT.
+- **Phân quyền**: Hỗ trợ role `user` và `admin`.
+- **Bảo mật**: Các route cần thiết đều được bảo vệ bằng Middleware xác thực JWT.
 
-### Phát Video (HLS Player)
-- **Adaptive Bitrate Streaming (ABR)**: Tự động điều chỉnh chất lượng video theo tốc độ mạng
-- **Hỗ trợ 6 mức chất lượng**: 360p, 480p, 720p, 1080p, 1440p (2K), 2160p (4K)
-- **Chuyển đổi chất lượng thủ công**: Chọn chất lượng cụ thể hoặc chế độ Auto
-- **Thống kê real-time**: Hiển thị chất lượng hiện tại, băng thông ước tính, buffer, segments đã tải
+### 🛡️ Quản trị viên (Admin)
+- **Quản lý người dùng**: Xem danh sách người dùng, số lượng video, xóa tài khoản (tự động xóa toàn bộ video của họ).
+- **Quản lý toàn bộ video**: Xem danh sách và trạng thái tất cả video trên hệ thống.
 
-### Tối ưu Băng thông
-- **HLS Segmentation**: Chia video thành các segment 6 giây
-- **Multi-bitrate Transcoding**: FFmpeg chuyển đổi video sang nhiều mức chất lượng
-- **Intelligent Caching**: Cache headers tối ưu cho segments và playlists
-- **Bandwidth Tracking**: Theo dõi lượng băng thông sử dụng theo từng request
+### 🎬 Quản lý Video
+- **Upload video**: Hỗ trợ kéo thả (MP4, WebM, AVI, MOV, MKV — tối đa 500MB). Trạng thái tiến trình transcode trực tiếp.
+- **Chỉnh sửa video**: Cập nhật tiêu đề, mô tả, trạng thái (Công khai/Riêng tư).
+- **Trình quản lý cá nhân (Dashboard)**: Nơi người dùng quản lý các video đã đăng tải.
+- **Xóa video**: Xóa video hoàn toàn khỏi CSDL và server ổ cứng.
+- **Tải xuống video**: Tải video ở định dạng MP4 nguyên gốc.
+- **Tìm kiếm**: Tìm kiếm theo tiêu đề hoặc mô tả trên kho video chung.
+
+### ⚡ Phát Video (HLS Player)
+- **Adaptive Bitrate Streaming (ABR)**: Tự động điều chỉnh chất lượng video tùy theo tốc độ đường truyền.
+- **Hỗ trợ 6 mức chất lượng**: 360p, 480p, 720p, 1080p, 1440p (2K), 2160p (4K).
+- **Chuyển đổi thủ công**: User có thể chọn chất lượng tĩnh hoặc chế độ Auto.
+- **Thống kê real-time**: Biểu đồ phân tích chất lượng hiện tại, băng thông ước tính, buffer size.
+
+### 🚀 Tối ưu Hệ thống
+- **HLS Segmentation**: Tự động chia video thành các segment 6 giây.
+- **Multi-bitrate Transcoding**: Tự sinh các tệp playlist riêng cho nhiều băng thông mạng khác nhau.
+- **Intelligent Caching**: Cache headers tối ưu cho giao thức HLS.
+- **Bandwidth Tracking**: Lưu trữ và log lượng băng thông tiêu thụ trên mỗi phiên xem video.
 
 ## Yêu cầu hệ thống
-
 - **Node.js** >= 18
-- **FFmpeg** (phải được cài đặt và có trong PATH)
+- **FFmpeg** (phải được cài đặt và thêm báo vào PATH)
 
-### Cài đặt Node.js
+## Cài đặt hệ thống
 
-1. Truy cập [https://nodejs.org](https://nodejs.org) và tải phiên bản **LTS** (khuyến nghị).
-2. Chạy file cài đặt, chọn **Next** qua các bước và đảm bảo tích chọn **"Add to PATH"**.
-3. Mở Terminal (hoặc PowerShell) và kiểm tra:
-   ```bash
-   node -v    # Hiển thị phiên bản Node.js, ví dụ: v20.11.1
-   npm -v     # Hiển thị phiên bản npm, ví dụ: 10.2.4
-   ```
-
-### Cài đặt FFmpeg
-
-**Cách 1 — Dùng winget (Windows 10/11):**
+### 1. Cài đặt FFmpeg
+**Trên Windows (Sử dụng Winget):**
 ```bash
 winget install Gyan.FFmpeg
 ```
 
-**Cách 2 — Cài thủ công:**
-1. Truy cập [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html) hoặc [https://www.gyan.dev/ffmpeg/builds/](https://www.gyan.dev/ffmpeg/builds/).
-2. Tải bản **ffmpeg-release-full** (file `.zip`).
-3. Giải nén vào thư mục, ví dụ: `C:\ffmpeg`.
-4. Thêm `C:\ffmpeg\bin` vào biến môi trường **PATH**:
-   - Tìm kiếm **"Environment Variables"** trong Start Menu.
-   - Chỉnh sửa biến **Path** của System → thêm dòng `C:\ffmpeg\bin`.
-5. Mở Terminal mới và kiểm tra:
-   ```bash
-   ffmpeg -version   # Hiển thị thông tin phiên bản FFmpeg
-   ```
+**Hoặc cài đặt thủ công:** Tải bản Release từ [ffmpeg.org](https://ffmpeg.org/download.html), giải nén và thêm thư mục `bin` vào biến môi trường `PATH`.
 
-## Cài đặt & Chạy dự án
-
+### 2. Cài đặt & Chạy dự án
 ```bash
-# Bước 1: Clone mã nguồn từ GitHub
-git clone https://github.com/your-username/VoD.git
+# Clone source code
+git clone https://github.com/HuuNgoc-2k4/VoD.git
 
-# Bước 2: Di chuyển vào thư mục dự án
+# Di chuyển vào thư mục
 cd VoD
 
-# Bước 3: Cài đặt các thư viện cần thiết
+# Cài đặt thư viện NodeJS
 npm install
 
-# Bước 4: Khởi động server
+# Khởi chạy server
 npm start
+# Hoặc npm run dev (dành cho quá trình phát triển)
 ```
 
-Sau khi khởi động thành công, mở trình duyệt và truy cập: **http://localhost:3000**
-
-### Sử dụng
-
-1. **Trang chủ** (`/`): Xem danh sách video, tìm kiếm video.
-2. **Upload** (`/upload.html`): Kéo thả hoặc chọn file video để upload. Hệ thống sẽ tự động transcode sang HLS multi-bitrate.
-3. **Xem video** (`/player.html?id=...`): Phát video với HLS player, chọn chất lượng, xem thống kê streaming.
-4. **Quản lý video**: Tại trang xem video, sử dụng các nút **Chỉnh sửa**, **Xóa**, **Tải xuống**.
+Truy cập trang Frontend tại: **http://localhost:3000**
 
 ## Cấu trúc dự án
 
 ```
 VoD/
 ├── server.js                 # Express server chính
-├── db.js                     # Khởi tạo SQLite database
-├── package.json
-│
-├── services/
-│   └── transcoder.js         # FFmpeg transcoding pipeline (HLS multi-bitrate)
-│
-├── middleware/
-│   └── bandwidth.js          # Theo dõi băng thông & cache headers
-│
-├── routes/
-│   ├── videos.js             # API: CRUD video, tải xuống
-│   └── upload.js             # API: Upload & trạng thái transcoding
-│
-├── public/                   # Frontend
-│   ├── index.html            # Trang chủ — danh sách video
-│   ├── player.html           # Trình phát video HLS
-│   ├── upload.html           # Trang upload video
-│   ├── favicon.png           # Icon website
-│   ├── css/
-│   │   └── style.css         # Dark theme design system
-│   └── js/
-│       ├── app.js            # Logic trang chủ
-│       ├── player.js         # HLS.js player + edit/delete/download
-│       └── upload.js         # Logic upload & tracking
-│
-├── videos/                   # HLS segments & playlists (auto-generated)
-├── uploads/                  # File tạm khi upload (auto-cleanup)
-└── data/                     # SQLite database file
+├── db.js                     # Khởi tạo SQLite database (bảng: users, videos, bandwidth_logs)
+├── middleware/               # Auth middleware (JWT) & Bandwidth tracker
+├── routes/                   # API logic (auth, admin, videos, upload)
+├── services/                 # FFmpeg Transcoder service xử lý HLS
+├── public/                   # Website Client (CSS, JS, HLS.js, Dark Theme UI)
+└── data/, videos/, uploads/  # Thư mục dữ liệu tĩnh & video tự sinh (Không theo dõi trên Git)
 ```
 
-## API Endpoints
-
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| `GET` | `/api/videos` | Danh sách video (hỗ trợ `?search=`, `?status=`, `?sort=`) |
-| `GET` | `/api/videos/:id` | Chi tiết video (tự tăng lượt xem) |
-| `PUT` | `/api/videos/:id` | Cập nhật tiêu đề & mô tả |
-| `DELETE` | `/api/videos/:id` | Xóa video và toàn bộ file |
-| `GET` | `/api/videos/:id/download` | Tải xuống video (chất lượng cao nhất) |
-| `POST` | `/api/upload` | Upload video (multipart form-data) |
-| `GET` | `/api/upload/status/:id` | Kiểm tra trạng thái transcoding |
-
-## Tech Stack
-
-| Thành phần | Công nghệ |
-|-----------|-----------|
-| Backend | Node.js, Express.js |
-| Database | SQLite (better-sqlite3) |
-| Video Processing | FFmpeg (fluent-ffmpeg) |
-| Streaming Protocol | HLS (HTTP Live Streaming) |
-| Frontend Player | HLS.js |
-| UI | Vanilla HTML/CSS/JS — Dark theme, Glassmorphism |
-
-## Mức chất lượng Transcoding
-
-| Chất lượng | Độ phân giải | Video Bitrate | Audio Bitrate |
-|-----------|-------------|---------------|---------------|
-| 360p | 640×360 | 800 Kbps | 96 Kbps |
-| 480p | 854×480 | 1.4 Mbps | 128 Kbps |
-| 720p | 1280×720 | 2.8 Mbps | 128 Kbps |
-| 1080p | 1920×1080 | 5 Mbps | 192 Kbps |
-| 1440p (2K) | 2560×1440 | 10 Mbps | 192 Kbps |
-| 2160p (4K) | 3840×2160 | 20 Mbps | 256 Kbps |
-
-> **Lưu ý:** Hệ thống chỉ transcode sang các mức chất lượng ≤ độ phân giải gốc của video upload. Ví dụ video 1080p sẽ không tạo phiên bản 2K hay 4K.
+## Công nghệ sử dụng
+- **Backend:** Node.js, Express.js
+- **Database:** SQLite (better-sqlite3)
+- **Video Processing:** FFmpeg (fluent-ffmpeg)
+- **Streaming Protocol:** HLS (HTTP Live Streaming)
+- **Authentication:** JWT (jsonwebtoken), BcryptJS
+- **Frontend Plugin:** HLS.js
